@@ -1,17 +1,17 @@
+# Import Error Log Class
+from Logger import Logger
+logger = Logger.Log()
+
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 import pyfiglet
 import os
-import uuid
 from datetime import datetime
-import numpy as np
-from pprint import pprint
+
 
 class DMT5():
-    def __init__(self, path):
+    def __init__(self):
         super().__init__()
-        
-        self.path = path
 
         # Fix or Main Fix Data
         self.company = "GTI001"
@@ -30,6 +30,7 @@ class DMT5():
         self.eco_group = ""
         self.viewAsAsm = 1
         self.planAsAsm = 0
+        self.progVal = 0
 
         # Initialize User Input
         self.main_drawing_number = ""
@@ -59,36 +60,52 @@ class DMT5():
         # Create Folder with TimeStamp
         self.createFolder()
         # Print Out Logo
-        self.logoPrint()
+        # self.logoPrint()
         # Load Excel Main Workbook
-        self.loadWorkbook()
+        # self.loadWorkbook(path)
         # Get Info From Mainsheet
-        self.getInputFromMainSheet()
+        #self.getInputFromMainSheet()
         # Print Out Info
-        self.showUserInput()
+        # self.showUserInput()
         # Get Data from all sheets
-        self.getFrmAllSheets(uom_seq=True)
+        # self.getFrmAllSheets(uom_seq=True)
         # Get All Value
-        self.getMainSheetVal()
-        
+        # self.getMainSheetVal()
+
     # Make directory for excel file output
     def createFolder(self):
+        print("Checking Folder...")
         try:
             os.makedirs(self.full_path)
         except FileExistsError:
             pass
+        print('Done Checking!')
 
     def logoPrint(self):
         self.logo = pyfiglet.figlet_format("DMT5 Generator")
         print(self.logo)
 
     # Load Excel Workbook with path specified
-    def loadWorkbook(self):
+    def loadWorkbook(self, path):
+        self.progVal = 5
         print("Initializing System...")
+        self.progVal = 10
         print("Reading Data...")
-
-        self.wb_main = load_workbook(self.path, data_only=True)
+        self.progVal = 15
+        self.wb_main = load_workbook(path, data_only=True)
+        self.progVal = 40
         print('Reading Done!')
+        self.getInputFromMainSheet()
+        self.progVal = 50
+        # Print Out Info
+        self.showUserInput()
+        self.progVal = 60
+        # Get Data from all sheets
+        self.getFrmAllSheets(uom_seq=True)
+        self.progVal = 70
+        # Get All Value
+        self.getMainSheetVal()
+        self.progVal = 100
 
     # Get Value To Generate Report
     def getInputFromMainSheet(self):
@@ -109,7 +126,8 @@ class DMT5():
     def showUserInput(self):
         self.main_drawing_number = self.main_sheet['B2'].value
         self.main_eco_group_id = self.main_sheet['B3'].value
-        self.main_effective_date = str(self.main_sheet['B4'].value.strftime("%d-%b-%y"))
+        self.main_effective_date = str(
+            self.main_sheet['B4'].value.strftime("%d-%b-%y"))
         self.main_total_module = self.main_sheet['B5'].value
         self.main_total_fab_part = self.main_sheet['B6'].value
 
@@ -132,7 +150,7 @@ class DMT5():
                 return "0"
         except:
             return "0"
-    
+
     # Check list exist in another list or not
     def checkNestedList(self, li, item):
         if item in li:
@@ -140,7 +158,7 @@ class DMT5():
         else:
             return False
 
-    # Check the string splitable or not (BOM) 
+    # Check the string splitable or not (BOM)
     # Eliminate the abnormal data
     def checkSplitSucc(self, name):
         try:
@@ -153,13 +171,13 @@ class DMT5():
 
     def getFrmAllSheets(self, bom=False, bom_main=True, uom_seq=False):
         check_li = []
-        
+
         for sheet in self.all_sheet_wb_main:
             self.parts_li = []
             total_bom_li = []
             if sheet.title.strip().upper() == str(int(self.main_total_module) + 1):
                 break
-            
+
             if sheet.title.strip().upper() != "MAINSHEET" and bom == False:
                 # Concat all sheets to map uom
                 module_col = sheet['B2'].value
@@ -168,7 +186,7 @@ class DMT5():
                 # Check if module already exist before
                 if module_col not in check_li:
                     check_li.append(module_col)
-                    self.uom_dic.update({module_col : module_uom})
+                    self.uom_dic.update({module_col: module_uom})
 
                 # Skip Top 2 Row and End Before Last Row in Column 3 Data
                 ind = 0
@@ -178,7 +196,7 @@ class DMT5():
                         continue
                     if data[3].value == None:
                         break
-                    
+
                     # Store All Data in Dictionary
                     part_drawing = data[3].value
                     part_erp = data[4].value
@@ -187,11 +205,12 @@ class DMT5():
                     revision = data[7].value
 
                     # Append all data into a list
-                    self.parts_li.append([part_drawing, part_erp, quantity, uom_code, revision])
+                    self.parts_li.append(
+                        [part_drawing, part_erp, quantity, uom_code, revision])
                 self.ext_li.extend(self.parts_li)
 
             if sheet.title.strip().upper() != "MAINSHEET" and bom == True:
-                # Run Main 
+                # Run Main
                 if bom_main:
                     # print("Running Module Main...")
                     # Get the Module Number for every sheet before start
@@ -213,26 +232,27 @@ class DMT5():
                         rev_num = data[7].value
 
                         # Check the list for repitition return status False/ True
-                        bom_status = self.checkNestedList(li=total_bom_li, item=[module_number, part_drawing, uom_code])
+                        bom_status = self.checkNestedList(
+                            li=total_bom_li, item=[module_number, part_drawing, uom_code])
 
                         # If not exist before only do this
                         if not bom_status:
                             # Append to List for checking later
-                            total_bom_li.append([module_number, part_drawing, uom_code])
+                            total_bom_li.append(
+                                [module_number, part_drawing, uom_code])
                             # Get PullAsAsm Value
                             pullAsm = self.checkSplit(data=part_drawing)
 
                             if part_drawing != "xxx" and part_drawing != "xxxx":
                                 # Append into BOM List
-                                self.part_bom_data.append([self.company, self.plant, module_number, rev_num, mtl_seq, part_drawing, quantity, 
-                                                        uom_code, self.related_opt, self.eco_group, self.viewAsAsm, pullAsm, self.planAsAsm])
+                                self.part_bom_data.append([self.company, self.plant, module_number, rev_num, mtl_seq, part_drawing, quantity,
+                                                           uom_code, self.related_opt, self.eco_group, self.viewAsAsm, pullAsm, self.planAsAsm])
 
                             # Increase MtlSeq for next loop
                             mtl_seq += 10
-                        
+
                         else:
                             pass
-                    
 
                     # print("Running Part Main...")
                     skip_col = 0
@@ -254,14 +274,16 @@ class DMT5():
                         rev_num = data[7].value
 
                         # Check the list for repitition return status False / True
-                        bom_status = self.checkNestedList(li=total_bom_li, item=[main_part, sub_part, uom_code])
+                        bom_status = self.checkNestedList(
+                            li=total_bom_li, item=[main_part, sub_part, uom_code])
 
                         # Check still in the same seq or not
                         if prev_main_part == main_part:
                             # If not exist before only do this
                             if not bom_status:
                                 # Append to List for checking later
-                                total_bom_li.append([main_part, sub_part, uom_code])
+                                total_bom_li.append(
+                                    [main_part, sub_part, uom_code])
                                 # Get PullAsm Value
                                 pullAsm = self.checkSplit(data=sub_part)
                                 # Check for abnormal string
@@ -271,8 +293,7 @@ class DMT5():
                                     if sub_part != None and sub_part != "N/A" and sub_part != "xxx" and sub_part != "xxxx":
                                         # Append into BOM List
                                         self.part_bom_data.append([self.company, self.plant, main_part, rev_num, mtl_seq, sub_part, 1, uom_code,
-                                                                self.related_opt, self.eco_group, self.viewAsAsm, pullAsm, self.planAsAsm])
-
+                                                                   self.related_opt, self.eco_group, self.viewAsAsm, pullAsm, self.planAsAsm])
                                 # Increase MtlSeq for next loop
                                 mtl_seq += 10
 
@@ -284,7 +305,8 @@ class DMT5():
                             # If not exist before only do this
                             if not bom_status:
                                 # Append to List for checking later
-                                total_bom_li.append([main_part, sub_part, uom_code])
+                                total_bom_li.append(
+                                    [main_part, sub_part, uom_code])
                                 # Get PullAsm Value
                                 pullAsm = self.checkSplit(data=sub_part)
                                 # Check for abnormal string
@@ -294,13 +316,14 @@ class DMT5():
                                     if sub_part != None and sub_part != "N/A" and sub_part != "xxx" and sub_part != "xxxx":
                                         # Append into BOM List
                                         self.part_bom_data.append([self.company, self.plant, main_part, rev_num, mtl_seq, sub_part, 1, uom_code,
-                                                                self.related_opt, self.eco_group, self.viewAsAsm, pullAsm, self.planAsAsm])
+                                                                   self.related_opt, self.eco_group, self.viewAsAsm, pullAsm, self.planAsAsm])
 
                                 # Increase MtlSeq for next loop
                                 mtl_seq += 10
 
         if uom_seq:
-            df = self.convertLiToDf(self.ext_li, col_name=['Part Drawing', 'Part ERP Number', 'Quantity', 'UOMCode', 'Revision'])
+            df = self.convertLiToDf(self.ext_li, col_name=[
+                                    'Part Drawing', 'Part ERP Number', 'Quantity', 'UOMCode', 'Revision'])
             # Continue to concat all sheets with uom mapped
             for row in df.itertuples():
                 main_col = row._1
@@ -309,17 +332,17 @@ class DMT5():
                 # Check Main either exist or not
                 if main_col not in check_li:
                     check_li.append(main_col.replace("\n", ""))
-                    self.uom_dic.update({main_col : main_uom})
-                
+                    self.uom_dic.update({main_col: main_uom})
+
                 # Check Sec either exist or not
                 else:
                     sec_col = row._2
                     if sec_col not in check_li and sec_col != "" and sec_col is not None:
                         check_li.append(sec_col.replace("\n", ""))
-                        self.uom_dic.update({sec_col : main_uom})
+                        self.uom_dic.update({sec_col: main_uom})
 
     # Convert List of Data To Dataframe
-    def convertLiToDf(self, li, col_name : list):
+    def convertLiToDf(self, li, col_name: list):
         df = pd.DataFrame(li, columns=col_name)
         return df
 
@@ -330,14 +353,15 @@ class DMT5():
     # Map the UOM using the dictionary generate in self.getFrmAllSheets (self.uom_dict)
     def mapUOM(self, col_name, ref_col):
         for col in col_name:
-            self.part_master_df[col] = self.part_master_df[ref_col].map(self.uom_dic)
+            self.part_master_df[col] = self.part_master_df[ref_col].map(
+                self.uom_dic)
 
     # Split the Product Number by (-)
     def splitPartNum(self):
         self.part_num_split = self.part_num.split("-")
         self.get_char = self.part_num_split[2][0]
         self.setProdCode()
-        
+
     # Generate ProdCode (Part Master)
     def setProdCode(self):
         if self.get_char == "U" or self.get_char == "W":
@@ -347,6 +371,9 @@ class DMT5():
         if self.get_char == "X":
             self.ProdCode = "FAB"
             self.OPCode = "FAB"
+        
+        # else:
+        #     raise Exception('Abnormal part number found which is unrecognized: ', self.part_num)
 
     # Generate RevShortDesc and PartAuditChangeDescription (Part Revision)
     def setDescription(self):
@@ -413,86 +440,98 @@ class DMT5():
             # Check whether sub part exist or not
             if self.part_num not in self.checkBOO:
                 # Part BOO
-                self.part_boo_data.append([self.company, self.plant, self.part_num, self.rev_numb, self.oprseq, 
-                                        self.OPCode, self.main_eco_group_id, self.stdformat, self.prodstandard, self.qtyper])
+                self.part_boo_data.append([self.company, self.plant, self.part_num, self.rev_numb, self.oprseq,
+                                           self.OPCode, self.main_eco_group_id, self.stdformat, self.prodstandard, self.qtyper])
 
                 # Part Revision
                 self.part_rev_data.append([self.company, self.part_num, self.rev_numb, self.RevShortDesc, self.main_effective_date,
                                            self.AltMethod, self.PartAuditChangeDescription, self.main_drawing_number])
 
                 # Part Revision with Attachment
-                self.part_rev_attch_data.append([self.company, self.part_num, self.rev_numb, self.file_dest, self.DrawDesc])
+                self.part_rev_attch_data.append(
+                    [self.company, self.part_num, self.rev_numb, self.file_dest, self.DrawDesc])
 
             # Part Master
-            self.part_master_data.append([self.company, self.part_num, self.part_desc, 
-                                      self.mfrpart_numc, self.typecode, self.UOMClassID, 
-                                      self.IUM, self.SalesUM, self.PUM, self.ProdCode, self.class_id, 
-                                      self.PartBrand_c, self.CommodityCode, self.NetWeight, self.NetWeightUOM, 
-                                      self.GrossWeight, self.GrossWeightUOM, self.costmethod, self.nonstock, 
-                                      self.qtybearing, self.trackserialnum, self.RplPartNum_c, self.buytoorder])           
-                                    
+            self.part_master_data.append([self.company, self.part_num, self.part_desc,
+                                          self.mfrpart_numc, self.typecode, self.UOMClassID,
+                                          self.IUM, self.SalesUM, self.PUM, self.ProdCode, self.class_id,
+                                          self.PartBrand_c, self.CommodityCode, self.NetWeight, self.NetWeightUOM,
+                                          self.GrossWeight, self.GrossWeightUOM, self.costmethod, self.nonstock,
+                                          self.qtybearing, self.trackserialnum, self.RplPartNum_c, self.buytoorder])
+
     def getBOMVal(self):
         self.getFrmAllSheets(bom=True)
 
-
     def genPartMaster(self):
-        self.part_master_df = self.convertLiToDf(self.part_master_data, col_name=['Company', 'PartNum', 'PartDescription', 'MfrPartNum_c', 
-                                                                             'TypeCode', 'UOMClassID', 'IUM', 'SalesUM', 'PUM', 'ProdCode', 
-                                                                             'ClassID', 'PartBrand_c', 'CommodityCode', 'NetWeight', 'NetWeightUOM', 
-                                                                             'GrossWeight', 'GrossWeightUOM', 'CostMethod', 'NonStock', 'QtyBearing', 
-                                                                             'TrackSerialNum', 'RplPartNum_c', 'BuyToOrder'])
+        self.part_master_df = self.convertLiToDf(self.part_master_data, col_name=['Company', 'PartNum', 'PartDescription', 'MfrPartNum_c',
+                                                                                  'TypeCode', 'UOMClassID', 'IUM', 'SalesUM', 'PUM', 'ProdCode',
+                                                                                  'ClassID', 'PartBrand_c', 'CommodityCode', 'NetWeight', 'NetWeightUOM',
+                                                                                  'GrossWeight', 'GrossWeightUOM', 'CostMethod', 'NonStock', 'QtyBearing',
+                                                                                  'TrackSerialNum', 'RplPartNum_c', 'BuyToOrder'])
 
         self.mapUOM(col_name=["IUM", "SalesUM", "PUM"], ref_col="PartNum")
 
-        self.convertDfToExcel(self.part_master_df, sheet_name="Part", file_name=self.full_path + "/PartMaster.xlsx")
+        self.convertDfToExcel(self.part_master_df, sheet_name="Part",
+                              file_name=self.full_path + "/PartMaster.xlsx")
 
     def genPartRevision(self):
-        self.part_rev_df = self.convertLiToDf(self.part_rev_data, col_name=['Company', 'PartNum', 'RevisionNum', 'RevShortDesc', 'EffectiveDate', 
+        self.part_rev_df = self.convertLiToDf(self.part_rev_data, col_name=['Company', 'PartNum', 'RevisionNum', 'RevShortDesc', 'EffectiveDate',
                                                                             'AltMethod', 'PartAudit#ChangeDescription', 'DrawDesc'])
 
-        self.convertDfToExcel(self.part_rev_df, sheet_name="Part Revision", file_name=self.full_path + "/PartRevision.xlsx")
+        self.convertDfToExcel(self.part_rev_df, sheet_name="Part Revision",
+                              file_name=self.full_path + "/PartRevision.xlsx")
 
     def genPartRevAttch(self):
-        self.part_rev_attch_df = self.convertLiToDf(self.part_rev_attch_data, col_name=['Company', 'PartNum', 'RevisionNum', 'FileName', 'DrawNum'])
+        self.part_rev_attch_df = self.convertLiToDf(self.part_rev_attch_data, col_name=[
+                                                    'Company', 'PartNum', 'RevisionNum', 'FileName', 'DrawNum'])
 
-        self.convertDfToExcel(self.part_rev_attch_df, sheet_name="Part Revision With Attachment", file_name=self.full_path + "/PartRevisionWithAttachment.xlsx")
+        self.convertDfToExcel(self.part_rev_attch_df, sheet_name="Part Revision With Attachment",
+                              file_name=self.full_path + "/PartRevisionWithAttachment.xlsx")
 
     def genBOO(self):
-        self.part_boo_df = self.convertLiToDf(self.part_boo_data, col_name=['Company', 'Plant', 'PartNum', 'RevisionNum', 'OprSeq', 'OpCode', 
+        self.part_boo_df = self.convertLiToDf(self.part_boo_data, col_name=['Company', 'Plant', 'PartNum', 'RevisionNum', 'OprSeq', 'OpCode',
                                                                             'ECOGroupID', 'StdFormat', 'ProdStandard', 'QtyPer'])
 
-        self.convertDfToExcel(self.part_boo_df, sheet_name="Bill Of Operations", file_name=self.full_path + "/BOO.xlsx")
+        self.convertDfToExcel(
+            self.part_boo_df, sheet_name="Bill Of Operations", file_name=self.full_path + "/BOO.xlsx")
 
     def genBOM(self):
-        self.part_bom_df = self.convertLiToDf(self.part_bom_data, col_name=['Company', 'Plant', 'PartNum', 'RevisionNum', 'MtlSeq', 'MtlPartNum', 'QtyPer', 
+        self.part_bom_df = self.convertLiToDf(self.part_bom_data, col_name=['Company', 'Plant', 'PartNum', 'RevisionNum', 'MtlSeq', 'MtlPartNum', 'QtyPer',
                                                                             'UOMCode', 'RelatedOperation', 'ECOGroupID', 'ViewAsAsm', 'PullAsAsm', 'PlanAsAsm'])
 
-        self.convertDfToExcel(self.part_bom_df, sheet_name="Bill Of Materials", file_name=self.full_path + "/BOM.xlsx")
+        self.convertDfToExcel(
+            self.part_bom_df, sheet_name="Bill Of Materials", file_name=self.full_path + "/BOM.xlsx")
         pass
 
     def selectGenFile(self, selectXL):
         if selectXL.upper() == "PARTMASTER":
             self.genPartMaster()
-            pass
-        if selectXL.upper() == "PARTREVISION":
+        elif selectXL.upper() == "PARTREVISION":
             self.genPartRevision()
-            pass
-        if selectXL.upper() == "PARTREVISIONWITHATTACHMENT":
+        elif selectXL.upper() == "PARTREVISIONWITHATTACHMENT":
             self.genPartRevAttch()
-            pass
-        if selectXL.upper() == "BOO":
+        elif selectXL.upper() == "BOO":
             self.genBOO()
-            pass
-        if selectXL.upper() == "BOM":
+        elif selectXL.upper() == "BOM":
             self.genBOM()
-            pass
-        if selectXL.upper() == "ALL":
+        elif selectXL.upper() == "ALL":
             self.genPartMaster()
             self.genPartRevision()
             self.genPartRevAttch()
             self.genBOO()
             self.genBOM()
+        else:
+            raise Exception('Select Generate File Command Not Recognize: ', selectXL )
 
-DMT = DMT5(path='D:/DMT5/files/Mech Automated System(1001-U01000).xlsm')
 
-DMT.selectGenFile("all")
+# try:
+#     DMT = DMT5(path='D:/DMT5/files/Mech Automated System(1001-U01000).xlsm')
+#     DMT.selectGenFile("alla")
+#     print("[SAVED] File Saved In: ", DMT.full_path)
+
+# except Exception as err:
+#     logger.error(err)
+#     print("[ERROR LOG] Found at './errorLog/{today_date}.log'")
+
+# finally:
+#     print("\Exit Now...")
